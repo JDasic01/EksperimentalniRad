@@ -1,57 +1,72 @@
+// WebAppReceive/Program.cs
+
 using System;
-using System.Text;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// RabbitMQ ConnectionFactory 
-var factory = new ConnectionFactory
-{
-    UserName = "guest",
-    Password = "guest",
-    VirtualHost = "/",
-    HostName = "rabbitmq",
-    Port = 5672,
-};
-
-builder.Services.AddSingleton(factory);
-
-var app = builder.Build();
-
-// Configure the ASP.NET Core application
-app.MapGet("/", async (HttpContext context) =>
-{
-    // Reciever logic
-using (var connection = factory.CreateConnection())
-        using (var channel = connection.CreateModel())
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices(services =>
+    {
+        services.AddHostedService<RabbitMQListenerService>();
+        services.AddSingleton(new ConnectionFactory
         {
-            channel.QueueDeclare(queue: "hello",
-                                 durable: false,
-                                 exclusive: false,
-                                 autoDelete: false,
-                                 arguments: null);
+            UserName = "guest",
+            Password = "guest",
+            VirtualHost = "/",
+            HostName = "rabbitmq",
+            Port = 5672,
+        });
+    })
+    .Build();
 
-            Console.WriteLine(" [*] Waiting for messages.");
+host.Run();
 
-            var consumer = new EventingBasicConsumer(channel);
-            consumer.Received += (model, ea) =>
+public class RabbitMQListenerService : IHostedService
+{
+    private readonly ConnectionFactory _factory;
+
+    public RabbitMQListenerService(ConnectionFactory factory)
+    {
+        _factory = factory;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using (var connection = _factory.CreateConnection())
+            using (var channel = connection.CreateModel())
             {
-                var body = ea.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
-                Console.WriteLine($" [x] Received {message}");
-            };
+                channel.QueueDeclare(queue: "messageQueue",
+                                    durable: false,
+                                    exclusive: false,
+                                    autoDelete: false,
+                                    arguments: null);
 
-            channel.BasicConsume(queue: "hello",
-                                 autoAck: true,
-                                 consumer: consumer);
+                var consumer = new EventingBasicConsumer(channel);
+                consumer.Received += (model, ea) =>
+                {
+                    var body = ea.Body.ToArray();
+                    var message = Encoding.UTF8.GetString(body);
 
-            Console.WriteLine(" Press [enter] to exit.");
-            Console.ReadLine();
+                    Console.WriteLine($" [x] Received message: {message}");
+                };
+
+                channel.BasicConsume(queue: "messageQueue",
+                                    autoAck: true,
+                                    consumer: consumer);
+
+                Console.WriteLine(" [*] Waiting for messages. To exit press CTRL+C");
+            }
         }
-});
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error starting RabbitMQ listener service");
+        }
+        return Task.CompletedTask;
+    }
 
-app.Run();
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+}

@@ -11,6 +11,8 @@ COPY . ./
 
 RUN dotnet add package Npgsql --version 5.0.12
 RUN dotnet add package RabbitMQ.Client --version 6.8.1
+RUN dotnet add package Newtonsoft.Json --version 13.0.3
+
 RUN dotnet build -c Release -o out
 
 # Publish the application
