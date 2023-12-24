@@ -11,3 +11,5 @@ WORKDIR /ab
 # Copy the contents of the local directory to the working directory
 COPY . .
 
+# Set the entry point to the 'ab' command
+ENTRYPOINT ["ab"]

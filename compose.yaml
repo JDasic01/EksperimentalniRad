@@ -12,7 +12,6 @@ services:
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
       - rabbitmq_go_net
-
   webapp:
     restart: on-failure
     build: ./WebApp
@@ -26,7 +25,7 @@ services:
       - ~/.aspnet/https:/https:ro
     depends_on:
       - database
-
+      - ab
   websend:
     restart: on-failure
     build: ./WebAppSend
@@ -41,6 +40,7 @@ services:
     depends_on:
       - database
       - rabbitmq
+      - ab
     networks:
       - rabbitmq_go_net
 
@@ -58,6 +58,7 @@ services:
     depends_on:
       - database
       - rabbitmq
+      - ab
     networks:
       - rabbitmq_go_net
 
@@ -72,6 +73,13 @@ services:
       - "5432:5432"
     volumes:
       - ./pg_data:/var/lib/postgresql/data
+  ab:
+    build: ./ab
+    tty: true
+    ports:
+      - "8083:80"
+    networks:
+      - rabbitmq_go_net
 networks:
   rabbitmq_go_net:
     driver: bridge

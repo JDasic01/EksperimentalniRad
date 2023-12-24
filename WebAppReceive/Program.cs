@@ -63,7 +63,7 @@ public class RabbitMQListenerService : IHostedService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error starting RabbitMQ listener service");
+            Console.WriteLine(ex.Message + " Error starting RabbitMQ listener service");
         }
         return Task.CompletedTask;
     }
