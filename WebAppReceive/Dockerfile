@@ -25,7 +25,8 @@ WORKDIR /WebAppReceive
 COPY --from=build-env /WebAppReceive/out .
 
 # Expose the port that your web application listens on
-EXPOSE 80
+EXPOSE 8082
+ENV ASPNETCORE_URLS=http://*:8082
 
 # Set the entry point for the application
 ENTRYPOINT ["dotnet", "WebAppReceive.dll"]

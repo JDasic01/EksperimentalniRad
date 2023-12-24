@@ -12,35 +12,37 @@ services:
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
       - rabbitmq_go_net
+  
   webapp:
     restart: on-failure
     build: ./WebApp
+    container_name: 'webapp'
     ports:
-      - "8080:80"
+      - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_URLS=http://+:8080
       - DATABASE_CONNECTION_STRING=Host=database;Port=5432;Database=your_database_name;User Id=your_username;Password=your_password
     volumes:
       - ~/.aspnet/https:/https:ro
     depends_on:
       - database
-      - ab
+  
   websend:
     restart: on-failure
     build: ./WebAppSend
+    container_name: 'websend'
     ports:
-      - "8081:80"
+      - "8081:8081"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_URLS=http://+:8081
       - DATABASE_CONNECTION_STRING=Host=database;Port=5432;Database=your_database_name;User Id=your_username;Password=your_password
     volumes:
       - ~/.aspnet/https:/https:ro
     depends_on:
       - database
       - rabbitmq
-      - ab
     networks:
       - rabbitmq_go_net
 
@@ -48,17 +50,16 @@ services:
     restart: on-failure
     build: ./WebAppReceive
     ports:
-      - "8082:80"
+      - "8082:8082"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_URLS=http://+:8082
       - DATABASE_CONNECTION_STRING=Host=database;Port=5432;Database=your_database_name;User Id=your_username;Password=your_password
     volumes:
       - ~/.aspnet/https:/https:ro
     depends_on:
       - database
       - rabbitmq
-      - ab
     networks:
       - rabbitmq_go_net
 
@@ -73,13 +74,14 @@ services:
       - "5432:5432"
     volumes:
       - ./pg_data:/var/lib/postgresql/data
+  
   ab:
     build: ./ab
-    tty: true
-    ports:
-      - "8083:80"
+    depends_on:
+      - webapp
     networks:
       - rabbitmq_go_net
+
 networks:
   rabbitmq_go_net:
     driver: bridge

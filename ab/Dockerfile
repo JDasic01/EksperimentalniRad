@@ -1,15 +1,13 @@
-FROM debian:bullseye-slim
+# Use the httpd image as the base image
+FROM httpd:latest
 
-# Install Apache Benchmark and other dependencies
-RUN apt-get update \
-    && apt-get install -y apache2-utils \
-    && rm -rf /var/lib/apt/lists/*
+# Install Apache Benchmark (ab)
+RUN apt-get update && \
+    apt-get install -y apache2-utils && \
+    rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
-WORKDIR /ab
+# Expose the default HTTP port
+EXPOSE 80
 
-# Copy the contents of the local directory to the working directory
-COPY . .
-
-# Set the entry point to the 'ab' command
-ENTRYPOINT ["ab"]
+# Set the default command to start Apache
+CMD ["httpd-foreground"]

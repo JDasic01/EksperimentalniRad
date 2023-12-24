@@ -23,7 +23,8 @@ WORKDIR /WebApp
 COPY --from=build-env /WebApp/out .
 
 # Expose the port that your web application listens on
-EXPOSE 80
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://*:8080
 
 # Set the entry point for the application
 ENTRYPOINT ["dotnet", "WebApp.dll"]

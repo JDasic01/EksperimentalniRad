@@ -19,6 +19,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:7.0
 WORKDIR /WebAppSend
 COPY --from=build-env /WebAppSend/out .
 
-EXPOSE 80
+EXPOSE 8081
+ENV ASPNETCORE_URLS=http://*:8081
 
 ENTRYPOINT ["dotnet", "WebAppSend.dll"]
