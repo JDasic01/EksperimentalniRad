@@ -1,13 +1,16 @@
-// WebAppSend/Program.cs
-
 using System;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using RabbitMQ.Client;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var app = builder.Build();
 
 var factory = new ConnectionFactory
 {
@@ -18,39 +21,32 @@ var factory = new ConnectionFactory
     Port = 5672,
 };
 
-builder.Services.AddSingleton(factory);
+app.MapGet("/", () =>
+{
+    SendMessage("Hello, World!");
+    return "Message sent!";
+});
 
-var app = builder.Build();
+app.Run();
 
-app.MapGet("/", async (HttpContext context) =>
+void SendMessage(string message)
 {
     using (var connection = factory.CreateConnection())
     using (var channel = connection.CreateModel())
     {
-        channel.QueueDeclare(queue: "messageQueue",
+        channel.QueueDeclare(queue: "hello",
                              durable: false,
                              exclusive: false,
                              autoDelete: false,
                              arguments: null);
 
-        var car = new CarData { Name = "Bentley", Price = 350000 };
-        var body = Encoding.UTF8.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(car));
+        var body = Encoding.UTF8.GetBytes(message);
 
         channel.BasicPublish(exchange: string.Empty,
-                             routingKey: "messageQueue",
+                             routingKey: "hello",
                              basicProperties: null,
                              body: body);
 
-        Console.WriteLine($" [x] Sent message about inserting car: {car.Name}, {car.Price}");
-
-        await context.Response.WriteAsync($"Message sent to RabbitMQ. Check the console for details. Car: {car.Name}, {car.Price}");
+        Console.WriteLine($" [x] Sent {message}");
     }
-});
-
-app.Run();
-
-public class CarData
-{
-    public string Name { get; set; }
-    public decimal Price { get; set; }
 }

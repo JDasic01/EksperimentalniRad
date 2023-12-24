@@ -8,15 +8,32 @@ using Npgsql;
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
+// Define the connection string
+var cs = "Host=database;Port=5432;Database=your_database_name;User Id=your_username;Password=your_password";
+
+// Define the table name
+var tableName = "cars";
+
+// Create the table if it doesn't exist
+using (var con = new NpgsqlConnection(cs))
+{
+    con.Open();
+
+    using (var cmd = new NpgsqlCommand())
+    {
+        cmd.Connection = con;
+        cmd.CommandText = $"CREATE TABLE IF NOT EXISTS {tableName} (id SERIAL PRIMARY KEY, name VARCHAR(255), price DECIMAL)";
+        cmd.ExecuteNonQuery();
+    }
+}
+
 app.MapGet("/", (HttpContext context) =>
 {
-    var cs = "Host=database;Port=5432;Database=your_database_name;User Id=your_username;Password=your_password";
-    
     var car = new CarData { Name = "Bentley", Price = 350000 };
     var body = Encoding.UTF8.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(car));
     var message = Encoding.UTF8.GetString(body);
     var carData = Newtonsoft.Json.JsonConvert.DeserializeObject<CarData>(message);
-    
+
     using (var con = new NpgsqlConnection(cs))
     {
         con.Open();
@@ -24,10 +41,11 @@ app.MapGet("/", (HttpContext context) =>
         using (var cmd = new NpgsqlCommand())
         {
             cmd.Connection = con;
-            cmd.CommandText = $"INSERT INTO cars(name, price) VALUES('{carData.Name}', {carData.Price})";
+            cmd.CommandText = $"INSERT INTO {tableName}(name, price) VALUES('{carData.Name}', {carData.Price})";
             cmd.ExecuteNonQuery();
         }
     }
+
     context.Response.StatusCode = 200;
     return context.Response.WriteAsync("OK");
 });
@@ -39,5 +57,3 @@ public class CarData
     public string Name { get; set; }
     public decimal Price { get; set; }
 }
-
-
