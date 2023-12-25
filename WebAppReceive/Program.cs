@@ -20,7 +20,21 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .Build();
 
+
 host.Run();
+
+using (var con = new NpgsqlConnection("Host=database;Port=5432;Database=your_database_name;User Id=your_username;Password=your_password"))
+{
+    var tableName = "cars";
+    con.Open();
+
+    using (var cmd = new NpgsqlCommand())
+    {
+        cmd.Connection = con;
+        cmd.CommandText = $"CREATE TABLE IF NOT EXISTS {tableName} (id SERIAL PRIMARY KEY, name VARCHAR(255), price DECIMAL)";
+        cmd.ExecuteNonQuery();
+    }
+}
 
 public class ReceiveMessagesService : BackgroundService
 {
@@ -53,6 +67,9 @@ public class ReceiveMessagesService : BackgroundService
 
     private async Task DoWork(CancellationToken stoppingToken)
     {
+        var cs = "Host=database;Port=5432;Database=your_database_name;User Id=your_username;Password=your_password";
+        var tableName = "cars";
+        
         _logger.LogInformation("Receive Messages Service is working.");
 
         while (!stoppingToken.IsCancellationRequested)
@@ -71,6 +88,17 @@ public class ReceiveMessagesService : BackgroundService
                 {
                     var body = ea.Body.ToArray();
                     var receivedMessage = Encoding.UTF8.GetString(body);
+                    var carData = Newtonsoft.Json.JsonConvert.DeserializeObject<CarData>(receivedMessage);
+                    using (var con = new NpgsqlConnection(cs))
+                    {
+                        con.Open();
+                        using (var cmd = new NpgsqlCommand())
+                        {
+                            cmd.Connection = con;
+                            cmd.CommandText = $"INSERT INTO {tableName}(name, price) VALUES('{carData.Name}', {carData.Price})";;
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
                     Console.WriteLine($" [x] Received {receivedMessage}");
                 };
 
@@ -92,3 +120,10 @@ public class ReceiveMessagesService : BackgroundService
         await base.StopAsync(stoppingToken);
     }
 }
+
+public class CarData
+{
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+}
+

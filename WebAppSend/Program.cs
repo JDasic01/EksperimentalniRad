@@ -1,12 +1,10 @@
 using System;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,32 +19,35 @@ var factory = new ConnectionFactory
     Port = 5672,
 };
 
-app.MapGet("/", () =>
+app.MapGet("/", async () =>
 {
-    SendMessage("Hello, World!");
+    await SendMessageAsync();
     return "Message sent!";
 });
 
 app.Run();
 
-void SendMessage(string message)
+async Task SendMessageAsync()
 {
+    var car = new CarData { Name = "Bentley", Price = 350000 };
+    var message = Newtonsoft.Json.JsonConvert.SerializeObject(car);
+
     using (var connection = factory.CreateConnection())
     using (var channel = connection.CreateModel())
     {
-        channel.QueueDeclare(queue: "hello",
-                             durable: false,
-                             exclusive: false,
-                             autoDelete: false,
-                             arguments: null);
+        channel.QueueDeclare(queue: "hello", durable: false, exclusive: false, autoDelete: false, arguments: null);
 
-        var body = Encoding.UTF8.GetBytes(message);
+        var messageBody = Encoding.UTF8.GetBytes(message);
 
-        channel.BasicPublish(exchange: string.Empty,
-                             routingKey: "hello",
-                             basicProperties: null,
-                             body: body);
+        // Make the message publishing asynchronous
+        await Task.Run(() => channel.BasicPublish(exchange: string.Empty, routingKey: "hello", basicProperties: null, body: messageBody));
 
         Console.WriteLine($" [x] Sent {message}");
     }
+}
+
+public class CarData
+{
+    public string Name { get; set; }
+    public decimal Price { get; set; }
 }

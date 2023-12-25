@@ -8,13 +8,9 @@ using Npgsql;
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
-// Define the connection string
 var cs = "Host=database;Port=5432;Database=your_database_name;User Id=your_username;Password=your_password";
-
-// Define the table name
 var tableName = "cars";
 
-// Create the table if it doesn't exist
 using (var con = new NpgsqlConnection(cs))
 {
     con.Open();
@@ -27,27 +23,31 @@ using (var con = new NpgsqlConnection(cs))
     }
 }
 
-app.MapGet("/", (HttpContext context) =>
+app.MapGet("/", () =>
 {
-    var car = new CarData { Name = "Bentley", Price = 350000 };
-    var body = Encoding.UTF8.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(car));
-    var message = Encoding.UTF8.GetString(body);
-    var carData = Newtonsoft.Json.JsonConvert.DeserializeObject<CarData>(message);
-
-    using (var con = new NpgsqlConnection(cs))
+    try
     {
-        con.Open();
+        var car = new CarData { Name = "Bentley", Price = 350000 };
+        var body = Encoding.UTF8.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(car));
+        var message = Encoding.UTF8.GetString(body);
+        var carData = Newtonsoft.Json.JsonConvert.DeserializeObject<CarData>(message);
 
-        using (var cmd = new NpgsqlCommand())
+        using (var con = new NpgsqlConnection(cs))
         {
-            cmd.Connection = con;
-            cmd.CommandText = $"INSERT INTO {tableName}(name, price) VALUES('{carData.Name}', {carData.Price})";
-            cmd.ExecuteNonQuery();
+            con.Open();
+            using (var cmd = new NpgsqlCommand())
+            {
+                cmd.Connection = con;
+                cmd.CommandText = $"INSERT INTO {tableName}(name, price) VALUES('{carData.Name}', {carData.Price})";
+                cmd.ExecuteNonQuery();
+            }
         }
+        return "Ok!";
     }
-
-    context.Response.StatusCode = 200;
-    return context.Response.WriteAsync("OK");
+    catch(Exception ex)
+    {
+        return ex.Message.ToString();
+    }
 });
 
 app.Run();

@@ -26,8 +26,10 @@ services:
     volumes:
       - ~/.aspnet/https:/https:ro
     depends_on:
+      - rabbitmq
       - database
-  
+    networks:
+      - rabbitmq_go_net
   websend:
     restart: on-failure
     build: ./WebAppSend
@@ -74,7 +76,8 @@ services:
       - "5432:5432"
     volumes:
       - ./pg_data:/var/lib/postgresql/data
-  
+    networks:
+      - rabbitmq_go_net
   ab:
     build: ./ab
     depends_on:
