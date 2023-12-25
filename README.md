@@ -3,7 +3,7 @@ docker-compose build --no-cache
 docker-compose up 
 ```
 ```
-ocker exec eksperimentalnirad-ab-1 ab -n 1000 -c 10 http://webapp:8080/
+docker exec eksperimentalnirad-ab-1 ab -n 1000 -c 10 http://webapp:8080/
 This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
 Licensed to The Apache Software Foundation, http://www.apache.org/
