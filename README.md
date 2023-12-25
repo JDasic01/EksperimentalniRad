@@ -1,4 +1,5 @@
 ```
+git clone git@github.com:JDasic01/EksperimentalniRad.git
 docker compose build --no-cache
 docker compose up 
 ```
