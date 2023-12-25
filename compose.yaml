@@ -30,6 +30,7 @@ services:
       - database
     networks:
       - rabbitmq_go_net
+  
   websend:
     restart: on-failure
     build: ./WebAppSend
@@ -78,8 +79,10 @@ services:
       - ./pg_data:/var/lib/postgresql/data
     networks:
       - rabbitmq_go_net
+  
   ab:
     build: ./ab
+    container_name: ab
     depends_on:
       - webapp
     networks:
