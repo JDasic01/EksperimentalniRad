@@ -1,48 +1,63 @@
-using System;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
+using System.Text;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
-
-var factory = new ConnectionFactory
+// Register RabbitMQMessageService as an implementation for IMessageService
+builder.Services.AddSingleton<IMessageService, RabbitMQMessageService>(provider => 
 {
-    UserName = "guest",
-    Password = "guest",
-    VirtualHost = "/",
-    HostName = "rabbitmq",
-    Port = 5672,
-};
+    var factory = new ConnectionFactory
+    {
+        UserName = "guest",
+        Password = "guest",
+        VirtualHost = "/",
+        HostName = "rabbitmq",
+        Port = 5672,
+    };
+    return new RabbitMQMessageService(factory);
+});
+
+var app = builder.Build();
 
 app.MapGet("/", async () =>
 {
-    await SendMessageAsync();
+    var messageService = app.Services.GetRequiredService<IMessageService>();
+    await messageService.SendMessageAsync(new CarData { Name = "Bentley", Price = 350000 });
+    
     return "Message sent!";
 });
 
 app.Run();
 
-async Task SendMessageAsync()
+public interface IMessageService
 {
-    var car = new CarData { Name = "Bentley", Price = 350000 };
-    var message = Newtonsoft.Json.JsonConvert.SerializeObject(car);
+    Task SendMessageAsync(CarData car);
+}
 
-    using (var connection = factory.CreateConnection())
-    using (var channel = connection.CreateModel())
+public class RabbitMQMessageService : IMessageService
+{
+    private readonly ConnectionFactory _factory;
+
+    public RabbitMQMessageService(ConnectionFactory factory)
     {
-        channel.QueueDeclare(queue: "hello", durable: false, exclusive: false, autoDelete: false, arguments: null);
+        _factory = factory;
+    }
 
-        var messageBody = Encoding.UTF8.GetBytes(message);
+    public async Task SendMessageAsync(CarData car)
+    {
+        using (var connection = _factory.CreateConnection())
+        using (var channel = connection.CreateModel())
+        {
+            channel.QueueDeclare(queue: "hello", durable: false, exclusive: false, autoDelete: false, arguments: null);
 
-        // Make the message publishing asynchronous
-        await Task.Run(() => channel.BasicPublish(exchange: string.Empty, routingKey: "hello", basicProperties: null, body: messageBody));
+            var message = Newtonsoft.Json.JsonConvert.SerializeObject(car);
+            var body = Encoding.UTF8.GetBytes(message);
 
-        Console.WriteLine($" [x] Sent {message}");
+            await Task.Run(() => channel.BasicPublish(exchange: "", routingKey: "hello", basicProperties: null, body: body));
+        }
     }
 }
 

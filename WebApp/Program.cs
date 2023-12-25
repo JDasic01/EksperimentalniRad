@@ -39,6 +39,7 @@ app.MapGet("/", () =>
             {
                 cmd.Connection = con;
                 cmd.CommandText = $"INSERT INTO {tableName}(name, price) VALUES('{carData.Name}', {carData.Price})";
+                Thread.Sleep(100);
                 cmd.ExecuteNonQuery();
             }
         }
